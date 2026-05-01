@@ -13,6 +13,12 @@ struct TList{
 
 typedef struct TList TList;
 
+struct TQueue{
+  TList* head, *tail;
+  int size;
+};
+
+typedef struct TQueue TQueue;
 
 
 TList* getPersonality(FILE* f) {
@@ -197,7 +203,7 @@ void getInfoByDates2(TList* s, TList* DoD){
 
 
 int compareAlpha(TList* n1, TList* n2) {
-  return strcmp(n1->name, n2->name) < 0;
+  return strcmp(n1->name, n2->name) > 0;
 }
 
 int compareLength(TList* n1, TList* n2) {
@@ -523,15 +529,6 @@ void find_palindrome(char* text) {
   }
 }
 
-void displayLLL(TList* header) {
-  TList* node = header;
-
-  while(node != NULL) {
-    printf("(%s, %s) --> \n", node->name, node->definition);
-    node = node->next;
-  }
-  printf("NULL\n");
-}
 TList* palindromeName(TList* s) {
   // initializing the list
 
@@ -675,6 +672,252 @@ TList* merge2Nodes(TList* s, TList* a) {
   node->next = temp;  
   return temp;
 }
+
+TList** addPersonality(FILE* f, TList** s, TList** a, char* name, char* DoB, char* DoD, char* definition) {
+  // Creating the new two nodes 
+
+  TList* new_s = malloc(sizeof(TList));
+  TList* new_a = malloc(sizeof(TList));
+
+  // filling in the information 
+
+  strcpy(new_s->name, name);
+  strcpy(new_s->definition, definition);
+  strcpy(new_a->DoB, DoB);
+  strcpy(new_a->DoD, DoD);
+
+  new_s->next = *s;
+  new_a->next = *a;
+
+  *s = sortWords(new_s);
+  *a = sortWords(new_a);
+
+
+  rewind(f);
+  FILE* temp = fopen("temp.txt", "w");
+  char* line = malloc(sizeof(char) * 300); 
+  fprintf(temp, "%s {%s-%s}= %s\n", name, DoB, DoD, definition);
+  while(fgets(line, 300, f)) {
+    fputs(line, temp);
+  }
+  free(line);
+  // copying everything in temp in f
+  rewind(temp);           // back to start of temp
+  rewind(f);              // back to start of f
+  // ftruncate(fileno(f), 0); // clear f's old content
+  char buff[4096];
+  size_t n; 
+  while((n = fread(buff, 1, sizeof(buff), temp)) > 0) {
+    fwrite(buff, 1, n, f);
+  }
+  fclose(f);
+  fclose(temp);
+
+  remove("sample.txt");
+  rename("temp.txt", "sample.txt");
+  return s; 
+}
+
+TList* addEvent(FILE* f, TList*b, char* event, char* date, char* definition){
+
+  TList* new_b = malloc(sizeof(TList));
+  strcpy(new_b->name, event);
+  strcpy(new_b->definition, definition);
+  strcpy(new_b->DoB, date);
+  new_b->next = b;
+
+
+  rewind(f);
+  FILE* temp = fopen("temp.txt", "w");
+  char* line = malloc(sizeof(char) * 300); 
+  fprintf(temp, "%s {%s}: %s\n", event, date, definition);
+  while(fgets(line, 300, f)) {
+    fputs(line, temp);
+  }
+  free(line);
+  // copying everything in temp in f
+  rewind(temp);           // back to start of temp
+  rewind(f);              // back to start of f
+  // ftruncate(fileno(f), 0); // clear f's old content
+  char buff[4096];
+  size_t n; 
+  while((n = fread(buff, 1, sizeof(buff), temp)) > 0) {
+    fwrite(buff, 1, n, f);
+  }
+  fclose(f);
+  fclose(temp);
+
+  remove("sample.txt");
+  rename("temp.txt", "sample.txt");
+  return new_b;
+}
+
+TQueue* createQueue() {
+  TQueue* q = malloc(sizeof(TList));
+  q->head = NULL;
+  q->tail = NULL;
+  q->size = 0;
+  return q;
+}
+
+void dequeue(TQueue *q) {
+  TList* p = q->head;
+  q->head = q->head->next;
+  q->size--;
+  free(p);
+}
+
+void enqueue(TQueue *q, TList* node) {
+  if(q->head == NULL) {
+    q->head = node;
+    q->tail = node;
+    q->size++;
+    return;
+  }
+  q->tail->next = node;
+  q->tail = node;
+  q->size++;
+}
+
+int countWords(char* name) {
+  int count = 0;
+
+  for(int i = 0; name[i] != '\0'; i++) {
+    if(name[i] == ' ' && name[i + 1] != '\0') {
+      count++;
+    }
+  }
+  return count+1;
+}
+
+TQueue* sName(TList* s) {
+  TQueue* q = createQueue();
+  printf("test\n");
+  TList* node = s;
+  while(node != NULL) {
+    // inserting node in the queue
+    TList* qNode = copyNode(node);
+
+    if(q->size == 0) {
+      q->head = qNode;
+      q->tail = q->head;
+      node = node->next;
+      q->size++;
+    } else {
+      int priority = countWords(node->name);
+      TList* curr = q->head;
+      TList* prev = NULL;
+      while(curr != NULL && countWords(curr->name) >= priority){
+        prev = curr;
+        curr = curr->next;
+      }
+      if(prev == NULL) {
+        qNode->next = q->head;
+        q->head = qNode; 
+      } else {
+        prev->next = qNode;
+        qNode->next = curr;
+        if(curr == NULL) {
+          q->tail = qNode;
+        }
+      }
+      q->size++;
+    }
+    node = node->next;
+  }
+  return q;
+}
+
+TQueue* Page(TList* s) {
+  TQueue* q = createQueue();
+  TList* node = s;
+  while(node != NULL) {
+    // inserting node in the queue
+    TList* qNode = copyNode(node);
+
+    if(q->size == 0) {
+      q->head = qNode;
+      q->tail = q->head;
+      node = node->next;
+      q->size++;
+    } else {
+      TList* curr = q->head;
+      TList* prev = NULL;
+      while(curr != NULL && !compareAge(qNode, curr)){
+        prev = curr;
+        curr = curr->next;
+      }
+      if(prev == NULL) {
+        qNode->next = q->head;
+        q->head = qNode; 
+      } else {
+        prev->next = qNode;
+        qNode->next = curr;
+        if(curr == NULL) {
+          q->tail = qNode;
+        }
+      }
+      q->size++;
+    }
+    node = node->next;
+  }
+  return q;
+}
+
+TQueue* toQueue(TList* merged) {
+  TQueue* q = createQueue();
+  TList* node = merged;
+  while(node != NULL) {
+    // inserting node in the queue
+    TList* qNode = copyNode(node);
+
+    if(q->size == 0) {
+      q->head = qNode;
+      q->tail = q->head;
+      node = node->next;
+      q->size++;
+    } else {
+      int priority = countWords(node->name);
+      TList* curr = q->head;
+      TList* prev = NULL;
+      while(curr != NULL && countWords(curr->name) >= priority){
+        prev = curr;
+        curr = curr->next;
+      }
+      if(prev == NULL) {
+        qNode->next = q->head;
+        q->head = qNode; 
+      } else {
+        prev->next = qNode;
+        qNode->next = curr;
+        if(curr == NULL) {
+          q->tail = qNode;
+        }
+      }
+      q->size++;
+    }
+    node = node->next;
+  }
+  return q;
+}
+
+
+
+/*
+-----------------------display functions--------------------------
+*/
+
+
+void displayLLL(TList* header) {
+  TList* node = header;
+
+  while(node != NULL) {
+    printf("(%s, %s) --> \n", node->name, node->definition);
+    node = node->next;
+  }
+  printf("NULL\n");
+}
+
 void displayDateLLL(TList* header) {
   TList* node = header;
 
@@ -703,16 +946,15 @@ void displayCircular(TList* header) {
   }
   printf("(%s, Birth: %s, Death: %s, Definition:%s) <--> \n", header->name, header->DoB, header->DoD, header->definition);
 }
-
-int main () {
-  FILE* f = fopen("sample.txt", "r");
-  if(f == NULL) {
-    printf("File have not been read\n");
-    return 1;
+void displayQueue(TQueue* h)
+{
+  TList* node = h->head;
+  while(node->next != NULL)
+  {
+    printf("(%s, Birth: %s, Death: %s, Definition:%s) --> \n", node->name, node->DoB, node->DoD, node->definition);
+    node = node->next;
   }
-  TList* head = getPersonality(f);
-  
-  return 0;
+  printf("(%s, Birth: %s, Death: %s, Definition:%s) --> \n", node->name, node->DoB, node->DoD, node->definition);
+  printf("NULL\n");
 }
-
 
