@@ -149,7 +149,7 @@ TList* getDatePersonality(FILE *f) {
       i++;
     }
     
-    TList* something = (TList*)malloc(sizeof(TList));
+    TList* something = malloc(sizeof(TList));
     strcpy(something->name, name);
     strcpy(something->DoB, date_birth);
     strcpy(something->DoD, date_death);
@@ -479,6 +479,50 @@ TList* countPersonality(TList* s, char* ptr) {
   return sortWords(similar);
 }
 
+void find_palindrome(char* text) {
+  
+  for(int i = 0; i < strlen(text); i++) {
+    if(text[i] == text[i - 1]) { // if the palindrome is of even size
+      int j = 1;
+      while(text[i - j] == text[i+j-1]) {
+        j++;
+      }
+      j--;
+      if(j < 3) {
+        continue;
+      }
+      char result[2*j];
+      for(int k = j; k >= 1; k--) {
+        result[j - k] = text[i - k];
+      }
+      for(int k = 0; k < j; k++){
+        result[j+k] = text[i+k];
+      }
+      i += j;
+    } else if(text[i-1] == text[i+1]) { // if the palindrome is of odd size
+      int j = 1;
+      while(text[i - j] == text[i + j]) {
+        j++;
+      }
+      j--;
+      if(j < 10){
+        continue;
+      }
+      int size = 2*j+1;
+      char result[size];
+      for(int k = j; k >= 1; k--) {
+        result[j - k] = text[i - k];
+      }
+      for(int k = 1; k <= j; k++){
+        result[j+k] = text[i+k];
+      }
+      result[j] = text[i];
+      printf("Result: %s\n", result);
+      i += j;
+    }
+  }
+}
+
 void displayLLL(TList* header) {
   TList* node = header;
 
@@ -488,7 +532,149 @@ void displayLLL(TList* header) {
   }
   printf("NULL\n");
 }
+TList* palindromeName(TList* s) {
+  // initializing the list
 
+  TList* head = malloc(sizeof(TList));
+  head->next = NULL;
+  TList* node = s;
+  TList* node_head = head;
+  // traversing the list s 
+  while(node != NULL) {
+    char* text = malloc(sizeof(char)*500);
+    strcpy(text, node->definition);
+    for(int i = 0; i < strlen(text); i++) {
+      if(text[i] == text[i - 1] && text[i] != ' ') { // if the palindrome is of even size
+        int j = 1;
+        while(text[i - j] == text[i+j-1] && text[i - j] != ' ') {
+          j++;
+        }
+        if(text[i - j] != ' ' || text[i+j-1] != ' ') continue;
+        j--;
+        if (j < 2) continue;
+        int size = 2*j;
+        char* result = malloc(sizeof(char)*size);
+        for(int k = j; k >= 1; k--) {
+          result[j - k] = text[i - k];
+        }
+        for(int k = 0; k < j; k++){
+          result[j+k] = text[i+k];
+        }
+        TList* new_node = malloc(sizeof(TList));
+        strcpy(new_node->name, result);
+        node_head->next = new_node;
+        node_head = node_head->next;
+        node_head->next = NULL;
+        free(result);
+        i += j;
+      } else if(text[i-1] == text[i+1] && text[i] != ' ') { // if the palindrome is of odd size
+
+        int j = 1;
+        while(text[i - j] == text[i + j] && text[i - j] != ' ') {
+          j++;
+        }
+        if(text[i+j] != ' ' || text[i - j] != ' ') continue;
+        j--;
+        if (j < 2) continue;
+        int size = 2*j+1;
+        char* result = malloc(size*sizeof(char));
+        for(int k = j; k >= 1; k--) {
+          result[j - k] = text[i - k];
+        }
+        for(int k = 1; k <= j; k++){
+          result[j+k] = text[i+k];
+        }
+        result[j] = text[i];
+        TList* new_node = malloc(sizeof(TList));
+        strcpy(new_node->name, result);
+        node_head->next = new_node;
+        node_head = node_head->next;
+        node_head->next = NULL;
+        free(result);
+
+        i += j;
+      }
+    }
+    node = node->next;
+  }
+  TList* temp = head->next;
+  free(head);
+  TList* new_temp = sortWords2(temp); 
+  return new_temp;
+}
+
+TList* mergeNodes(TList* s, TList* a) {
+  // sort both so that we find the same thing 
+  TList* new_s = sortWords(s);
+  TList* new_a = sortWords(a);
+
+  TList* head = malloc(sizeof(TList));
+  TList* node = head;
+  head->next = NULL;
+  head->prev = NULL;
+
+  while((new_a != NULL) && (new_s != NULL)) {
+    if(strcmp(new_s->name, new_a->name) > 0) {
+      new_s = new_s->next;
+    } else if (strcmp(new_s->name, new_a->name) < 0) {
+      new_a = new_a->next;
+    }
+
+    TList* new_node = malloc(sizeof(TList));
+    strcpy(new_node->name, new_s->name);
+    strcpy(new_node->definition, new_s->definition);
+    strcpy(new_node->DoB, new_a->DoB);
+    strcpy(new_node->DoD, new_a->DoD);
+    new_node->next = NULL;
+    new_node->prev = node;
+    node->next = new_node;
+    node = new_node;
+
+    new_s = new_s->next;
+    new_a = new_a->next;
+  }
+  TList* temp = head->next;
+  free(head);
+  temp->prev = NULL;
+  return temp;
+}
+
+TList* merge2Nodes(TList* s, TList* a) {
+  // sort both so that we find the same thing 
+  TList* new_s = sortWords(s);
+  TList* new_a = sortWords(a);
+
+  TList* head = malloc(sizeof(TList));
+  TList* node = head;
+  head->next = NULL;
+  head->prev = NULL;
+
+  while((new_a != NULL) && (new_s != NULL)) {
+    if(strcmp(new_s->name, new_a->name) > 0) {
+      new_s = new_s->next;
+    } else if (strcmp(new_s->name, new_a->name) < 0) {
+      new_a = new_a->next;
+    }
+
+    TList* new_node = malloc(sizeof(TList));
+    strcpy(new_node->name, new_s->name);
+    strcpy(new_node->definition, new_s->definition);
+    strcpy(new_node->DoB, new_a->DoB);
+    strcpy(new_node->DoD, new_a->DoD);
+    new_node->next = NULL;
+    new_node->prev = node;
+    node->next = new_node;
+    node = new_node;
+
+    new_s = new_s->next;
+    new_a = new_a->next;
+  }
+  TList* temp = head->next;
+  free(head);
+  temp->prev = node;
+  node->next = temp;  
+  return temp;
+}
 void displayDateLLL(TList* header) {
   TList* node = header;
 
@@ -499,6 +685,25 @@ void displayDateLLL(TList* header) {
   printf("NULL\n");
 }
 
+void FullDisplay(TList* header) {
+  TList* node = header;
+  printf("NULL\n");
+  while(node != NULL) {
+    printf("(%s, Birth: %s, Death: %s, Definition:%s) <--> \n", node->name, node->DoB, node->DoD, node->definition);
+    node = node->next;
+  }
+  printf("NULL\n");
+}
+void displayCircular(TList* header) {
+  TList* node = header->next;
+  printf("(%s, Birth: %s, Death: %s, Definition:%s) <--> \n", header->name, header->DoB, header->DoD, header->definition);
+  while(node != NULL && strcmp(header->name, node->name) != 0) {
+    printf("(%s, Birth: %s, Death: %s, Definition:%s) <--> \n", node->name, node->DoB, node->DoD, node->definition);
+    node = node->next;
+  }
+  printf("(%s, Birth: %s, Death: %s, Definition:%s) <--> \n", header->name, header->DoB, header->DoD, header->definition);
+}
+
 int main () {
   FILE* f = fopen("sample.txt", "r");
   if(f == NULL) {
@@ -506,9 +711,7 @@ int main () {
     return 1;
   }
   TList* head = getPersonality(f);
-  TList* header = getDatePersonality(f);
-  TList* similar = countPersonality(head, "1808");
-  displayLLL(similar);
+  
   return 0;
 }
 
